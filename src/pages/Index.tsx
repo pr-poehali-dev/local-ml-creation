@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Index = () => {
@@ -15,8 +16,11 @@ const Index = () => {
   ]);
   const [codeOutput, setCodeOutput] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('python');
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     if (activeTab === 'chat') {
@@ -27,6 +31,41 @@ const Index = () => {
       ]);
     } else if (activeTab === 'code') {
       setCodeOutput(`# Сгенерированный ${selectedLanguage} код\n# По запросу: ${input}\n\ndef example_function():\n    print("Демо-версия генерации кода")\n    return True`);
+    } else if (activeTab === 'photo') {
+      setIsGenerating(true);
+      try {
+        const response = await fetch('https://functions.poehali.dev/9849e29a-2b88-4b28-8fc6-77b0816d7545', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: input })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setGeneratedImage(data.image);
+          if (data.demo) {
+            toast({
+              title: 'Демо-режим',
+              description: 'Добавьте HUGGINGFACE_API_KEY для реальной генерации',
+            });
+          }
+        } else {
+          toast({
+            title: 'Ошибка',
+            description: data.error || 'Не удалось сгенерировать изображение',
+            variant: 'destructive'
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось подключиться к API',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsGenerating(false);
+      }
     }
 
     setInput('');
@@ -171,17 +210,32 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="photo" className="space-y-4">
-                <div className="h-[500px] rounded-lg border border-border bg-card/50 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 mx-auto rounded-2xl bg-accent/20 flex items-center justify-center">
-                      <Icon name="Camera" size={40} className="text-accent" />
+                <div className="h-[500px] rounded-lg border border-border bg-card/50 flex items-center justify-center p-4">
+                  {isGenerating ? (
+                    <div className="text-center space-y-4">
+                      <div className="w-16 h-16 mx-auto rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                      <p className="text-sm text-muted-foreground">Генерирую изображение...</p>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Генерация Фото</h3>
-                      <p className="text-sm text-muted-foreground">Реалистичные изображения</p>
-                      <p className="text-xs text-muted-foreground mt-1">Опишите желаемую сцену</p>
+                  ) : generatedImage ? (
+                    <div className="w-full h-full flex flex-col">
+                      <img
+                        src={generatedImage}
+                        alt="Generated"
+                        className="w-full h-full object-contain rounded-lg"
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center space-y-4">
+                      <div className="w-20 h-20 mx-auto rounded-2xl bg-accent/20 flex items-center justify-center">
+                        <Icon name="Camera" size={40} className="text-accent" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Генерация Фото</h3>
+                        <p className="text-sm text-muted-foreground">Реалистичные изображения через AI</p>
+                        <p className="text-xs text-muted-foreground mt-1">Опишите желаемую сцену в поле ниже</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

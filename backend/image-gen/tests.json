@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "Test image generation endpoint",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "prompt": "a beautiful sunset over mountains"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "image": "string",
+        "prompt": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
